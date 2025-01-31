@@ -366,3 +366,125 @@ object Main extends App {
 
 
 <img width="854" alt="image" src="https://github.com/user-attachments/assets/ae70cf5f-d622-4431-af75-9814b6385968" />
+
+# AVANCE 2
+
+# FuncionesCsv
+
+Este repositorio contiene un conjunto de funciones útiles para trabajar con archivos CSV y JSON en el contexto de datos de películas. Las funciones están diseñadas para facilitar la limpieza y el procesamiento de datos, especialmente cuando se trabajan con grandes volúmenes de información que necesitan ser formateados o transformados antes de ser almacenados o utilizados en otras aplicaciones.
+Funciones
+
+''' Scala
+saveCsv[T: HeaderEncoder](filePath: String, data: List[T]): Unit
+'''
+
+Guarda una lista de datos en un archivo CSV con el encabezado automáticamente generado.
+Parámetros:
+
+  - filePath: Ruta donde se guardará el archivo CSV.
+  - data: Lista de datos a guardar, de tipo genérico T.
+
+Propósito:
+
+Guardar cualquier tipo de datos en formato CSV, generando un encabezado correspondiente.
+'''Scala
+erroresCrew(crewJson: String): String
+''' 
+Realiza transformaciones en un JSON del equipo de producción (crew) para convertir comillas simples en dobles y reemplazar None por null.
+Parámetros:
+
+    crewJson: Cadena de texto que contiene el JSON con los datos del equipo.
+
+Propósito:
+
+Normalizar el JSON para su posterior procesamiento, convirtiendo comillas simples a dobles y reemplazando valores None por null.
+
+'''Scala
+cleanCrewForSQL(crewJson: String): String
+'''
+
+Prepara el JSON del equipo para ser insertado en una base de datos SQL, modificando ciertos caracteres y estructuras.
+Parámetros:
+
+    crewJson: Cadena JSON que necesita ser limpiada para SQL.
+
+Propósito:
+
+Formatear el JSON de manera que sea compatible con bases de datos SQL, realizando las siguientes transformaciones:
+
+    Reemplazar comas y otros signos de puntuación para separar claves y valores.
+
+removeDoubleQuotes(crewJson: String): String
+
+Elimina todas las comillas dobles de un JSON.
+Parámetros:
+
+    crewJson: Cadena JSON de la que se eliminarán las comillas dobles.
+
+Propósito:
+
+Eliminar comillas dobles innecesarias para facilitar el procesamiento de los datos.
+replaceEqualsWithQuotes(crewJson: String): String
+
+Sustituye los signos = por comillas dobles " en el JSON.
+Parámetros:
+
+    crewJson: Cadena JSON que contiene el texto a modificar.
+
+Propósito:
+
+Asegurar que el formato del JSON sea consistente, reemplazando los signos = por comillas dobles.
+processCrewJson(crewJson: String): String
+
+Aplica una secuencia de transformaciones al JSON del equipo de producción.
+Parámetros:
+
+    crewJson: Cadena JSON del equipo que se necesita procesar.
+
+Propósito:
+
+Realizar una serie de transformaciones en el JSON del equipo (crew) para garantizar que sea compatible con las bases de datos y otros sistemas.
+replaceEmpty(value: String, defaultValue: String): String
+
+Reemplaza valores vacíos o nulos por un valor predeterminado.
+Parámetros:
+
+    value: El valor que será verificado.
+    defaultValue: El valor que se asignará en caso de que el valor sea nulo o esté vacío.
+
+Propósito:
+
+Garantizar que los valores nulos o vacíos sean reemplazados por un valor válido.
+corregirCorchetes(crewJson: String): String
+
+Reemplaza corchetes de apertura y cierre adicionales en el JSON.
+Parámetros:
+
+    crewJson: Cadena JSON a procesar.
+
+Propósito:
+
+Corregir los corchetes extra en el JSON, asegurando que la estructura sea válida.
+corregirLlaves(crewJson: String): String
+
+Reemplaza corchetes de cierre ] por ]} cuando esté en la última posición de la lista.
+Parámetros:
+
+    crewJson: Cadena JSON a procesar.
+
+Propósito:
+
+Garantizar que las llaves del JSON estén correctamente cerradas.
+corregirJsons(crewJson: String): String
+
+Realiza una corrección general en el JSON, reemplazando corchetes extra de apertura y cierre.
+Parámetros:
+
+    crewJson: Cadena JSON a procesar.
+
+Propósito:
+
+Limpiar el JSON, reemplazando corchetes de apertura [[ por [ y de cierre ]] por ].
+Uso
+
+Estas funciones están diseñadas para ser utilizadas principalmente en la limpieza y transformación de datos en proyectos que manejan información sobre películas, como por ejemplo, al procesar listas de miembros del equipo de producción en formato JSON o al guardar datos en archivos CSV para su posterior análisis.

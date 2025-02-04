@@ -373,13 +373,13 @@ object Main extends App {
 
 ## Limpieza 
 
-1. Limpieza de Datos
+### 1. Limpieza de Datos
 
-   - Lectura del CSV: El código comienza leyendo un archivo CSV utilizando la librería kantan.csv, que es una librería eficiente para manejar archivos CSV en Scala. Se especifica un separador de celdas (;) y se indica que el archivo tiene una cabecera (withHeader). Esto permite mapear directamente las filas del CSV a instancias de la clase Peliculass.
+  - Lectura del CSV: El código comienza leyendo un archivo CSV utilizando la librería kantan.csv, que es una librería eficiente para manejar archivos CSV en Scala. Se especifica un separador de celdas (;) y se indica que el archivo tiene una cabecera (withHeader). Esto permite mapear directamente las filas del CSV a instancias de la clase Peliculass.
 
   - Transformación y Limpieza: Una vez que los datos son leídos, se aplican varias funciones de limpieza (cleanCrewForSQL, cleanProductionCountries, etc.) a los campos que contienen datos complejos (como listas de actores, países de producción, etc.). Estas funciones probablemente se encargan de normalizar los datos, eliminar caracteres no deseados, o convertir los datos a un formato adecuado para su almacenamiento en una base de datos.
 
-   - Validación de JSON: Después de la limpieza, se valida que los campos que deberían contener JSON sean realmente JSON válidos. Esto es importante porque algunos campos pueden contener datos en formato de arreglo JSON, y es crucial asegurarse de que estos datos estén correctamente formateados antes de insertarlos en la base de datos.
+  - Validación de JSON: Después de la limpieza, se valida que los campos que deberían contener JSON sean realmente JSON válidos. Esto es importante porque algunos campos pueden contener datos en formato de arreglo JSON, y es crucial asegurarse de que estos datos estén correctamente formateados antes de insertarlos en la base de datos.
 
 ```Scala
 import dao.PeliculasDAO
@@ -481,3 +481,141 @@ object Main extends IOApp.Simple {
 }
 
 ```
+
+![WhatsApp Image 2025-02-03 at 22 11 28](https://github.com/user-attachments/assets/1c692838-b670-4fee-bf3d-d4bf83dd9413)
+
+## Solución al manejo de la columna Crew
+
+El objeto FuncionesCsv proporciona funciones para la manipulación de archivos CSV y limpieza de datos en formato JSON, en particular para la columna crew. Se utilizan las bibliotecas kantan.csv para la lectura y escritura de CSV y play.api.libs.json para el procesamiento de datos JSON.
+
+#### Funciones Incluidas
+1. saveCsv
+```Scala
+Scaladef saveCsv[T: HeaderEncoder](filePath: String, data: List[T]): Unit__
+```
+___Descripción:__
+
+Esta función guarda datos en un archivo CSV en la ruta especificada.
+Parámetros:
+
+```Scala
+filePath: String → Ruta del archivo donde se guardará el CSV.
+
+data: List[T] → Lista de datos a escribir en el archivo CSV.
+```
+
+Funcionamiento:
+Se instancia un objeto File con la ruta proporcionada.
+Se utiliza la función writeCsv de kantan.csv para escribir los datos en el archivo, aplicando la configuración rfc.withHeader para incluir encabezados.
+
+2. cleanCrewForSQL
+
+```Scala
+ def cleanCrewForSQL(crewJson: String): String
+```
+
+Descripción:
+Esta función limpia y transforma una cadena JSON de datos de crew para hacerla compatible con SQL, eliminando caracteres no deseados y reemplazando ciertos valores.
+
+Parámetros:
+
+```Scala
+crewJson: String → Cadena JSON representando la información del equipo (crew).
+```
+
+Funcionamiento:
+Normalización de formato:
+Se eliminan espacios en blanco iniciales y finales con trim.
+Se reemplazan comillas simples ' por dobles " para corregir el formato JSON.
+Se sustituyen valores None por null.
+Reemplazos específicos:
+Se transforman ciertas combinaciones de caracteres en la estructura JSON para mejorar su compatibilidad con SQL.
+Se eliminan comillas innecesarias y se reinsertan en los lugares adecuados.
+
+```Scala
+
+package services
+import kantan.csv._
+import kantan.csv.ops._
+import java.io.File
+import play.api.libs.json._
+
+object FuncionesCsv {
+
+  // Función para guardar un archivo CSV
+  def saveCsv[T: HeaderEncoder](filePath: String, data: List[T]): Unit = {
+    new File(filePath).writeCsv(data, rfc.withHeader)
+  }
+
+
+
+  def cleanCrewForSQL(crewJson: String): String = {
+    crewJson
+      .trim
+      .replaceAll("\'", "\"")
+      .replaceAll("None", "null")
+      .replaceAll(", \"", ", =")  // Reemplaza ', "' por ', ='
+      .replaceAll("\\{\"", "{=")  // Reemplaza '{"' por '{='
+      .replaceAll("\": \"", "=: =")  // Reemplaza '": "' por '=: ='
+      .replaceAll("\": ", "=: ")  // Reemplaza '": ' por '=: '
+      .replaceAll("\", ", "=, ")  // Reemplaza '", ' por '=, '
+      .replaceAll("\"}", "=}")
+      .replaceAll("\"", "")
+      .replaceAll("=", "\"")
+  }
+
+```
+
+
+  ## Conección a la base de datos (SQL WORKBENCH)
+  
+  Documentación: Conexión a la Base de Datos
+- Descripción
+
+Este módulo gestiona la conexión a la base de datos usando Doobie, Cats Effect, HikariCP y Typesafe Config. Carga la configuración desde application.conf y proporciona un HikariTransactor como recurso administrado para ejecutar consultas de manera segura.
+- Código Explicado
+
+```Scala
+object Database {
+  private val connectEC: ExecutionContext = ExecutionContext.global
+
+  def transactor: Resource[IO, HikariTransactor[IO]] = {
+    val config = ConfigFactory.load().getConfig("db")
+    HikariTransactor.newHikariTransactor[IO](
+      config.getString("driver"),
+      config.getString("url"),
+      config.getString("user"),
+      config.getString("password"),
+      connectEC
+    )
+  }
+}
+```
+
+- Carga la configuración desde application.conf.
+- Crea un transactor (HikariTransactor[IO]) para manejar conexiones de forma eficiente.
+- Usa Resource[IO, HikariTransactor[IO]] para liberar la conexión automáticamente.
+- Ejemplo de Configuración (application.conf)
+
+```Scala
+db {
+  driver = "org.postgresql.Driver"
+  url = "jdbc:postgresql://localhost:5432/mi_base"
+  user = "usuario"
+  password = "contraseña"
+}
+```
+
+- Uso del Transactor
+
+```Scala
+Database.transactor.use { xa =>
+  sql"SELECT 1".query[Int].unique.transact(xa).flatMap(IO.println)
+}
+```
+
+ Seguro (libera conexiones automáticamente).
+ Escalable (HikariCP optimiza el rendimiento).
+ Configuración separada del código.
+  
+

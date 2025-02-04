@@ -371,282 +371,113 @@ object Main extends App {
 
 # AVANCE 2
 
-# Funciones de Limpieza de Datos para Crew
+## Limpieza 
 
-Este conjunto de funciones está diseñado para limpiar y transformar los datos relacionados con el equipo de producción (crew) en formato JSON, con el fin de asegurar que se adapten a un formato adecuado para su uso en bases de datos o archivos CSV.
+1. Limpieza de Datos
 
-## Funciones de Limpieza
+   - Lectura del CSV: El código comienza leyendo un archivo CSV utilizando la librería kantan.csv, que es una librería eficiente para manejar archivos CSV en Scala. Se especifica un separador de celdas (;) y se indica que el archivo tiene una cabecera (withHeader). Esto permite mapear directamente las filas del CSV a instancias de la clase Peliculass.
 
-### 1. ```saveCsv[T: HeaderEncoder](filePath: String, data: List[T]): Unit```
+  - Transformación y Limpieza: Una vez que los datos son leídos, se aplican varias funciones de limpieza (cleanCrewForSQL, cleanProductionCountries, etc.) a los campos que contienen datos complejos (como listas de actores, países de producción, etc.). Estas funciones probablemente se encargan de normalizar los datos, eliminar caracteres no deseados, o convertir los datos a un formato adecuado para su almacenamiento en una base de datos.
 
-Esta función guarda una lista de objetos de tipo genérico `T` en un archivo CSV con el encabezado generado automáticamente.
+   - Validación de JSON: Después de la limpieza, se valida que los campos que deberían contener JSON sean realmente JSON válidos. Esto es importante porque algunos campos pueden contener datos en formato de arreglo JSON, y es crucial asegurarse de que estos datos estén correctamente formateados antes de insertarlos en la base de datos.
 
-#### Parámetros:
 ```Scala
-- filePath```: Ruta donde se guardará el archivo CSV.
-- `data`: Lista de datos a guardar, de tipo genérico `T`.
-
-#### Propósito:
-Guardar datos en formato CSV para su posterior análisis o almacenamiento.
-
-#### Código:
-```scala
-def saveCsv[T: HeaderEncoder](filePath: String, data: List[T]): Unit = {
-  new File(filePath).writeCsv(data, rfc.withHeader)
-}
-
-2. erroresCrew(crewJson: String): String
-
-Esta función realiza las siguientes transformaciones en el JSON del equipo de producción:
-
-    Convierte comillas simples (') a comillas dobles (").
-    Reemplaza el valor None por null, ya que None no es válido en JSON.
-
-Parámetros:
-
-    crewJson: El JSON del equipo de producción como cadena de texto.
-
-Propósito:
-
-Normalizar el formato del JSON para que sea compatible con sistemas de almacenamiento de datos que requieren un formato estándar.
-Código:
-
-def erroresCrew(crewJson: String): String = {
-  crewJson
-    .trim
-    .replaceAll("\'", "\"") // Convertir comillas simples a dobles
-    .replaceAll("None", "null") // Reemplazar todas las ocurrencias de None por null
-}
-
-3. cleanCrewForSQL(crewJson: String): String
-
-Esta función transforma el JSON del equipo de producción para hacerlo compatible con una base de datos SQL. Realiza las siguientes transformaciones:
-
-    Reemplaza comas seguidas de comillas , " por , =.
-    Cambia los caracteres de apertura y cierre del JSON para adaptarlo al formato SQL ({\" por {=, y }\" por =}).
-    Sustituye los delimitadores de clave-valor del JSON para que sean compatibles con SQL.
-
-Parámetros:
-
-    crewJson: El JSON del equipo de producción como cadena de texto.
-
-Propósito:
-
-Transformar el JSON para que se pueda insertar directamente en una base de datos SQL, modificando la estructura y los delimitadores de los datos.
-Código:
-
-def cleanCrewForSQL(crewJson: String): String = {
-  crewJson
-    .replaceAll(", \"", ", =")  // Reemplaza ', "' por ', ='
-    .replaceAll("\\{\"", "{=")  // Reemplaza '{"' por '{='
-    .replaceAll("\": \"", "=: =")  // Reemplaza '": "' por '=: ='
-    .replaceAll("\": ", "=: ")  // Reemplaza '": ' por '=: '
-    .replaceAll("\", ", "=, ")  // Reemplaza '", ' por '=, '
-    .replaceAll("\"}", "=}")  // Reemplaza '"}' por '=}'
-}
-
-4. removeDoubleQuotes(crewJson: String): String
-
-Elimina todas las comillas dobles del JSON. Esta función es útil cuando se necesita limpiar un JSON que contiene comillas dobles innecesarias.
-Parámetros:
-
-    crewJson: El JSON del equipo de producción como cadena de texto.
-
-Propósito:
-
-Eliminar las comillas dobles de un JSON para facilitar el procesamiento de los datos.
-Código:
-
-def removeDoubleQuotes(crewJson: String): String = {
-  crewJson.replaceAll("\"", "")  // Elimina todas las comillas dobles
-}
-
-5. replaceEqualsWithQuotes(crewJson: String): String
-
-Esta función reemplaza todos los signos = por comillas dobles " en el JSON, lo que asegura que los datos sigan el formato adecuado.
-Parámetros:
-
-    crewJson: El JSON del equipo de producción como cadena de texto.
-
-Propósito:
-
-Transformar los valores del JSON, sustituyendo los signos = por comillas dobles para alinearse con el formato estándar de JSON.
-Código:
-
-def replaceEqualsWithQuotes(crewJson: String): String = {
-  crewJson.replaceAll("=", "\"")  // Sustituye '=' por comillas dobles
-}
-
-6. processCrewJson(crewJson: String): String
-
-Esta función aplica una secuencia de transformaciones a los datos JSON del equipo de producción:
-
-    Limpia el JSON para SQL.
-    Elimina las comillas dobles innecesarias.
-    Reemplaza los signos = por comillas dobles.
-
-Parámetros:
-
-    crewJson: El JSON del equipo de producción como cadena de texto.
-
-Propósito:
-
-Aplicar una serie de transformaciones al JSON para asegurar que esté listo para ser insertado en una base de datos SQL o utilizado en otros sistemas.
-Código:
-
-def processCrewJson(crewJson: String): String = {
-  val step1 = cleanCrewForSQL(crewJson)        // Primera transformación
-  val step2 = removeDoubleQuotes(step1)       // Segunda transformación
-  val step3 = replaceEqualsWithQuotes(step2)  // Tercera transformación
-  step3
-}
-
-7. replaceEmpty(value: String, defaultValue: String): String
-
-Esta función reemplaza los valores vacíos o nulos por un valor predeterminado.
-Parámetros:
-
-    value: El valor que se va a verificar.
-    defaultValue: El valor que se asignará si value es nulo o vacío.
-
-Propósito:
-
-Garantizar que los valores vacíos o nulos sean reemplazados por un valor válido para evitar errores en el procesamiento posterior.
-Código:
-
-def replaceEmpty(value: String, defaultValue: String): String = {
-  if (value == null || value.trim.isEmpty) defaultValue else value
-}
-
-8. corregirCorchetes(crewJson: String): String
-
-Esta función corrige corchetes extra en el JSON, reemplazando [[ por [ y ]] por ].
-Parámetros:
-
-    crewJson: El JSON del equipo de producción como cadena de texto.
-
-Propósito:
-
-Corregir corchetes innecesarios en el JSON, asegurando que la estructura sea válida.
-Código:
-
-def corregirCorchetes(crewJson: String): String = {
-  crewJson.replaceAll("\\[\\[", "[").replaceAll("\\]\\]", "]")
-}
-
-9. corregirLlaves(crewJson: String): String
-
-Esta función reemplaza corchetes de cierre ] por ]} solo si están en la última posición del JSON.
-Parámetros:
-
-    crewJson: El JSON del equipo de producción como cadena de texto.
-
-Propósito:
-
-Asegurar que las llaves del JSON estén correctamente cerradas.
-Código:
-
-def corregirLlaves(crewJson: String): String = {
-  crewJson.replaceAll("(?<=\\])(?!\\})", "]}")
-}
-
-10. corregirJsons(crewJson: String): String
-
-Esta función realiza una corrección general en el JSON, reemplazando corchetes de apertura [[ por [ y corchetes de cierre ]] por ].
-Parámetros:
-
-    crewJson: El JSON del equipo de producción como cadena de texto.
-
-Propósito:
-
-Limpiar el JSON, asegurando que los corchetes estén correctamente formateados.
-Código:
-
-def corregirJsons(crewJson: String): String = {
-  crewJson
-    .trim
-    .replaceAll("\\[\\[", "[") // Reemplaza corchetes extra de apertura
-    .replaceAll("\\]\\]", "]")  // Reemplaza corchetes extra de cierre
-}
-
-
-```scala
-
-package services
+import dao.PeliculasDAO
+import play.api.libs.json._
 import kantan.csv._
 import kantan.csv.ops._
+import cats.effect.{IO, IOApp}
+import kantan.csv.generic._
+import models.Peliculass
+import services.FuncionesCsv
+
 import java.io.File
 
-object FuncionesCsv {
+object Main extends IOApp.Simple {
 
+  // Ruta del archivo CSV original
+  val path2DataFile = "C:\\GrandePeliculasCsv\\src\\main\\resources\\data\\pi_movies_complete_data.csv"
 
-  // Función para guardar un archivo CSV
-  def saveCsv[T: HeaderEncoder](filePath: String, data: List[T]): Unit = {
-    new File(filePath).writeCsv(data, rfc.withHeader)
+  // Leer el archivo como una lista de objetos Peliculass
+  val peliculas: List[Peliculass] = {
+    new File(path2DataFile)
+      .asCsvReader[Peliculass](rfc.withHeader.withCellSeparator(';'))
+      .collect { case Right(pelicula) => pelicula }
+      .toList
   }
 
-
-  def erroresCrew(crewJson: String): String = {
-    crewJson
-      .trim
-      .replaceAll("\'", "\"") // Convertir comillas simples a dobles
-      .replaceAll("None", "null") // Reemplazar todas las ocurrencias de None por null
-
-
+  // Procesar datos con limpieza
+  val peliculasLimpias = peliculas.map { pelicula =>
+    pelicula.copy(
+      crew = FuncionesCsv.cleanCrewForSQL(pelicula.crew),
+      production_countries = FuncionesCsv.cleanProductionCountries(pelicula.production_countries).map(Json.stringify).getOrElse("[]"),
+      keywords = FuncionesCsv.cleankeywoards(pelicula.keywords).map(Json.stringify).getOrElse("[]"),
+      production_companies = FuncionesCsv.cleanProduction_companies(pelicula.production_companies).map(Json.stringify).getOrElse("[]"),
+      spoken_languages = FuncionesCsv.cleanSpoken_languages(pelicula.spoken_languages).map(Json.stringify).getOrElse("[]"),
+      cast = FuncionesCsv.cleanCast(pelicula.cast).map(Json.stringify).getOrElse("[]"),
+      belongs_to_collection = FuncionesCsv.cleanBellong_to_collection(pelicula.belongs_to_collection).map(Json.stringify).getOrElse("[]"),
+      genres = FuncionesCsv.cleanGenres(pelicula.genres).map(Json.stringify).getOrElse("[]")
+    )
   }
 
-  def cleanCrewForSQL(crewJson: String): String = {
-    crewJson
-      .replaceAll(", \"", ", =")  // Reemplaza ', "' por ', ='
-      .replaceAll("\\{\"", "{=")  // Reemplaza '{"' por '{='
-      .replaceAll("\": \"", "=: =")  // Reemplaza '": "' por '=: ='
-      .replaceAll("\": ", "=: ")  // Reemplaza '": ' por '=: '
-      .replaceAll("\", ", "=, ")  // Reemplaza '", ' por '=, '
-      .replaceAll("\"}", "=}")  // Reemplaza '"}' por '=}'
+  // Guardar la lista en un archivo CSV
+  val outputFile = "C:\\GrandePeliculasCsv\\src\\main\\resources\\data\\peliculas_limpias.csv"
+  FuncionesCsv.saveCsv(outputFile, peliculasLimpias)
+
+  println(s"Datos limpios guardados en: $outputFile")
+
+  // Función para validar si el texto es un array JSON válido
+  def isValidJson(text: String): Boolean = {
+    if (text == null || text.trim.isEmpty) return false
+
+    val isArrayFormat = text.trim.startsWith("[") && text.trim.endsWith("]")
+    if (!isArrayFormat) return false
+
+    try {
+      val json = Json.parse(text)
+      json.isInstanceOf[JsArray]
+    } catch {
+      case _: Exception => false
+    }
   }
 
-  def removeDoubleQuotes(crewJson: String): String = {
-    crewJson.replaceAll("\"", "")  // Elimina todas las comillas dobles
+  // Diccionario para contar errores por campo
+  val campos = List("crew", "production_countries", "keywords", "production_companies", "spoken_languages", "cast", "belongs_to_collection")
+
+  var conteoErrores = campos.map(_ -> 0).toMap
+  var conteoCorrectos = campos.map(_ -> 0).toMap
+
+  peliculasLimpias.foreach { pelicula =>
+    campos.foreach { campo =>
+      val valorCampo = campo match {
+        case "crew" => pelicula.crew
+        case "production_countries" => pelicula.production_countries
+        case "keywords" => pelicula.keywords
+        case "production_companies" => pelicula.production_companies
+        case "spoken_languages" => pelicula.spoken_languages
+        case "cast" => pelicula.cast
+        case "belongs_to_collection" => pelicula.belongs_to_collection
+      }
+
+      if (isValidJson(valorCampo)) {
+        conteoCorrectos = conteoCorrectos.updated(campo, conteoCorrectos(campo) + 1)
+      } else {
+        conteoErrores = conteoErrores.updated(campo, conteoErrores(campo) + 1)
+      }
+    }
   }
 
-  def replaceEqualsWithQuotes(crewJson: String): String = {
-    crewJson.replaceAll("=", "\"")  // Sustituye '=' por comillas dobles
+  // Imprimir resultados finales
+  println("\n======= RESULTADOS DE VALIDACIÓN JSON =======")
+  campos.foreach { campo =>
+    println(s"$campo: Correctos = ${conteoCorrectos(campo)}, Incorrectos = ${conteoErrores(campo)}")
   }
 
-
-  
-  // Uso en secuencia
-  def processCrewJson(crewJson: String): String = {
-    val step1 = cleanCrewForSQL(crewJson)        // Primera transformación
-    val step2 = removeDoubleQuotes(step1)       // Segunda transformación
-    val step3 = replaceEqualsWithQuotes(step2)  // Tercera transformación
-step3
-  }
-
-  // Función para reemplazar valores vacíos o nulos
-  def replaceEmpty(value: String, defaultValue: String): String = {
-    if (value == null || value.trim.isEmpty) defaultValue else value
-  }
-
-  def corregirCorchetes(crewJson: String): String = {
-    // Reemplazar [[ por [ y ]] por ]
-    crewJson.replaceAll("\\[\\[", "[").replaceAll("\\]\\]", "]")
-  }
-
-  def corregirLlaves(crewJson: String): String = {
-    // Reemplazar ] por ]} solo si está en la última posición de la lista de corchetes
-    crewJson.replaceAll("(?<=\\])(?!\\})", "]}")
-  }
-
-
-  def corregirJsons(crewJson: String): String = {
-    crewJson
-      .trim
-      // Reemplazar corchetes extra de apertura
-      .replaceAll("\\[\\[", "[")
-      // Reemplazar corchetes extra de cierre
-      .replaceAll("\\]\\]", "]")
-
-  }
+  // Ejecutar la inserción en la base de datos dentro de un efecto IO
+  def run: IO[Unit] = for {
+    result <- PeliculasDAO.insertAll(peliculasLimpias) // Inserta los registros en la BD
+    _ <- IO.println(s"Registros insertados: ${result.size}") // Imprime el total insertado
+  } yield ()
+}
 
 ```
